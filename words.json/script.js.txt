@@ -1,0 +1,1205 @@
+// Основные переменные игры
+let gameState = {
+    currentLevel: null,
+    currentMode: null,
+    currentQuestion: 0,
+    score: 0,
+    correctAnswers: 0,
+    totalQuestions: 10,
+    timeLeft: 0,
+    timerInterval: null,
+    currentWord: null,
+    questions: [],
+    gameActive: false,
+    startTime: null
+};
+
+let appState = {
+    words: {},
+    stats: {
+        gamesPlayed: 0,
+        bestScore: 0,
+        wordsLearned: new Set(),
+        totalAnswers: 0,
+        correctAnswers: 0
+    },
+    settings: {
+        soundEnabled: true,
+        questionsCount: 10,
+        timerSeconds: 15,
+        theme: 'light'
+    }
+};
+
+// DOM элементы
+const sections = {
+    main: document.getElementById('main-menu'),
+    level: document.getElementById('level-select'),
+    mode: document.getElementById('mode-select'),
+    game: document.getElementById('game-screen'),
+    results: document.getElementById('results-screen'),
+    dictionary: document.getElementById('dictionary-screen'),
+    addWord: document.getElementById('add-word-screen'),
+    stats: document.getElementById('stats-screen'),
+    settings: document.getElementById('settings-screen')
+};
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    loadGameData();
+    updateUIStats();
+    showSection('main');
+    
+    // Загружаем стандартные слова, если нет сохраненных
+    if (Object.keys(appState.words).length === 0) {
+        loadDefaultWords();
+    }
+    
+    // Применяем сохраненные настройки
+    applySettings();
+    
+    // Инициализация событий
+    initEventListeners();
+});
+
+// Загрузка данных игры
+function loadGameData() {
+    // Загрузка слов
+    const savedWords = localStorage.getItem('wordMasterWords');
+    if (savedWords) {
+        appState.words = JSON.parse(savedWords);
+    }
+    
+    // Загрузка статистики
+    const savedStats = localStorage.getItem('wordMasterStats');
+    if (savedStats) {
+        const stats = JSON.parse(savedStats);
+        appState.stats = {
+            ...stats,
+            wordsLearned: new Set(stats.wordsLearned || [])
+        };
+    }
+    
+    // Загрузка настроек
+    const savedSettings = localStorage.getItem('wordMasterSettings');
+    if (savedSettings) {
+        appState.settings = JSON.parse(savedSettings);
+    }
+}
+
+// Сохранение данных игры
+function saveGameData() {
+    localStorage.setItem('wordMasterWords', JSON.stringify(appState.words));
+    localStorage.setItem('wordMasterStats', JSON.stringify({
+        ...appState.stats,
+        wordsLearned: Array.from(appState.stats.wordsLearned)
+    }));
+    localStorage.setItem('wordMasterSettings', JSON.stringify(appState.settings));
+}
+
+// Загрузка стандартных слов
+function loadDefaultWords() {
+    appState.words = {
+        beginner: [
+            {
+                en: "apple",
+                ru: "яблоко",
+                example: "I eat an apple every day for breakfast."
+            },
+            {
+                en: "house",
+                ru: "дом",
+                example: "They live in a big house near the park."
+            },
+            {
+                en: "book",
+                ru: "книга",
+                example: "This book is very interesting and educational."
+            },
+            {
+                en: "water",
+                ru: "вода",
+                example: "Drink more water to stay healthy."
+            },
+            {
+                en: "friend",
+                ru: "друг",
+                example: "He is my best friend since childhood."
+            },
+            {
+                en: "school",
+                ru: "школа",
+                example: "My children go to school by bus every morning."
+            },
+            {
+                en: "computer",
+                ru: "компьютер",
+                example: "I use my computer for work and entertainment."
+            },
+            {
+                en: "time",
+                ru: "время",
+                example: "What time is it? I need to leave soon."
+            },
+            {
+                en: "city",
+                ru: "город",
+                example: "New York is a big city with many opportunities."
+            },
+            {
+                en: "music",
+                ru: "музыка",
+                example: "I listen to music while working to concentrate better."
+            }
+        ],
+        intermediate: [
+            {
+                en: "achieve",
+                ru: "достигать",
+                example: "With hard work, you can achieve your goals."
+            },
+            {
+                en: "knowledge",
+                ru: "знание",
+                example: "Knowledge is power when used wisely."
+            },
+            {
+                en: "experience",
+                ru: "опыт",
+                example: "This job requires at least 3 years of experience."
+            },
+            {
+                en: "environment",
+                ru: "окружающая среда",
+                example: "We should protect the environment for future generations."
+            },
+            {
+                en: "opportunity",
+                ru: "возможность",
+                example: "This is a great opportunity to learn something new."
+            }
+        ],
+        advanced: [
+            {
+                en: "perseverance",
+                ru: "настойчивость",
+                example: "Success requires perseverance and determination."
+            },
+            {
+                en: "sophisticated",
+                ru: "искушенный, сложный",
+                example: "This is a sophisticated piece of technology."
+            },
+            {
+                en: "ambiguity",
+                ru: "двусмысленность",
+                example: "The contract's ambiguity led to misunderstandings."
+            }
+        ]
+    };
+    
+    saveGameData();
+    updateWordCounts();
+}
+
+// Обновление статистики в UI
+function updateUIStats() {
+    // Общее количество слов
+    let totalWords = 0;
+    for (const level in appState.words) {
+        totalWords += appState.words[level].length;
+    }
+    document.getElementById('total-words').textContent = totalWords;
+    
+    // Статистика из главного меню
+    document.getElementById('games-played').textContent = appState.stats.gamesPlayed;
+    document.getElementById('best-score').textContent = appState.stats.bestScore;
+    
+    // Количество слов по уровням
+    document.getElementById('count-beginner').textContent = 
+        `${appState.words.beginner ? appState.words.beginner.length : 0} слов`;
+    document.getElementById('count-intermediate').textContent = 
+        `${appState.words.intermediate ? appState.words.intermediate.length : 0} слов`;
+    document.getElementById('count-advanced').textContent = 
+        `${appState.words.advanced ? appState.words.advanced.length : 0} слов`;
+}
+
+// Показать/скрыть секции
+function showSection(sectionName) {
+    // Скрыть все секции
+    Object.values(sections).forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Показать выбранную секцию
+    if (sections[sectionName]) {
+        sections[sectionName].classList.add('active');
+    }
+    
+    // Особые действия для некоторых секций
+    if (sectionName === 'dictionary') {
+        displayDictionary();
+    } else if (sectionName === 'stats') {
+        displayStats();
+    } else if (sectionName === 'settings') {
+        loadSettingsToUI();
+    }
+}
+
+// Навигация
+function showMainMenu() {
+    showSection('main');
+    updateUIStats();
+}
+
+function startGame() {
+    showSection('level');
+}
+
+function showLevelSelect() {
+    showSection('level');
+}
+
+function showModeSelect() {
+    showSection('mode');
+}
+
+function showDictionary() {
+    showSection('dictionary');
+}
+
+function showAddWord() {
+    showSection('addWord');
+}
+
+function showStats() {
+    showSection('stats');
+}
+
+function showSettings() {
+    showSection('settings');
+}
+
+// Выбор уровня
+function selectLevel(level) {
+    gameState.currentLevel = level;
+    showSection('mode');
+}
+
+// Выбор режима
+function selectMode(mode) {
+    gameState.currentMode = mode;
+    startNewGame();
+}
+
+// Начало новой игры
+function startNewGame() {
+    // Сброс состояния игры
+    gameState.currentQuestion = 0;
+    gameState.score = 0;
+    gameState.correctAnswers = 0;
+    gameState.questions = [];
+    gameState.gameActive = true;
+    gameState.startTime = Date.now();
+    
+    // Установка количества вопросов из настроек
+    gameState.totalQuestions = appState.settings.questionsCount;
+    
+    // Генерация вопросов
+    generateQuestions();
+    
+    // Обновление UI
+    document.getElementById('current-level-badge').textContent = 
+        gameState.currentLevel === 'beginner' ? 'Начинающий' : 
+        gameState.currentLevel === 'intermediate' ? 'Средний' : 'Продвинутый';
+    
+    document.getElementById('current-mode-badge').textContent = 
+        getModeName(gameState.currentMode);
+    
+    document.getElementById('current-score').textContent = '0';
+    document.getElementById('question-counter').textContent = `1/${gameState.totalQuestions}`;
+    document.getElementById('progress-fill').style.width = '0%';
+    
+    // Показ игрового экрана
+    showSection('game');
+    
+    // Запуск первого вопроса
+    showNextQuestion();
+    
+    // Запуск таймера, если включен
+    if (appState.settings.timerSeconds > 0) {
+        startTimer();
+    }
+}
+
+// Генерация вопросов
+function generateQuestions() {
+    const words = appState.words[gameState.currentLevel];
+    if (!words || words.length === 0) {
+        showNotification('В этом уровне нет слов! Добавьте слова сначала.', 'error');
+        showMainMenu();
+        return;
+    }
+    
+    // Выбираем случайные слова
+    const selectedWords = [];
+    const availableWords = [...words];
+    
+    for (let i = 0; i < gameState.totalQuestions && availableWords.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * availableWords.length);
+        selectedWords.push(availableWords[randomIndex]);
+        availableWords.splice(randomIndex, 1);
+    }
+    
+    gameState.questions = selectedWords;
+}
+
+// Показать следующий вопрос
+function showNextQuestion() {
+    if (gameState.currentQuestion >= gameState.totalQuestions) {
+        endGame();
+        return;
+    }
+    
+    gameState.currentWord = gameState.questions[gameState.currentQuestion];
+    gameState.currentQuestion++;
+    
+    // Обновление счетчика
+    document.getElementById('question-counter').textContent = 
+        `${gameState.currentQuestion}/${gameState.totalQuestions}`;
+    
+    // Обновление прогресс-бара
+    const progress = ((gameState.currentQuestion - 1) / gameState.totalQuestions) * 100;
+    document.getElementById('progress-fill').style.width = `${progress}%`;
+    
+    // Очистка контейнеров
+    document.getElementById('question-container').innerHTML = '';
+    document.getElementById('answer-container').innerHTML = '';
+    document.getElementById('result-feedback').innerHTML = '';
+    document.getElementById('result-feedback').className = 'feedback';
+    
+    // Сброс таймера
+    if (appState.settings.timerSeconds > 0) {
+        resetTimer();
+    }
+    
+    // Показ вопроса в зависимости от режима
+    switch (gameState.currentMode) {
+        case 'translation-ru-en':
+            showTranslationQuestion('ru', 'en');
+            break;
+        case 'translation-en-ru':
+            showTranslationQuestion('en', 'ru');
+            break;
+        case 'multiple-choice':
+            showMultipleChoiceQuestion();
+            break;
+        case 'fill-blank':
+            showFillBlankQuestion();
+            break;
+        case 'dictation':
+            showDictationQuestion();
+            break;
+        case 'mixed':
+            showMixedQuestion();
+            break;
+    }
+}
+
+// Вопрос на перевод
+function showTranslationQuestion(fromLang, toLang) {
+    const questionContainer = document.getElementById('question-container');
+    const answerContainer = document.getElementById('answer-container');
+    
+    // Показ вопроса
+    const questionText = gameState.currentWord[fromLang];
+    questionContainer.innerHTML = `
+        <div class="question-text">Переведите слово: <strong>${questionText}</strong></div>
+    `;
+    
+    // Создание поля для ввода ответа
+    answerContainer.innerHTML = `
+        <input type="text" class="input-answer" id="user-answer" 
+               placeholder="Введите перевод..." autocomplete="off">
+    `;
+    
+    // Фокус на поле ввода
+    document.getElementById('user-answer').focus();
+}
+
+// Вопрос с выбором ответа
+function showMultipleChoiceQuestion() {
+    const questionContainer = document.getElementById('question-container');
+    const answerContainer = document.getElementById('answer-container');
+    
+    // Показ вопроса
+    questionContainer.innerHTML = `
+        <div class="question-text">Выберите правильный перевод слова: <strong>${gameState.currentWord.en}</strong></div>
+    `;
+    
+    // Создание вариантов ответов
+    const words = appState.words[gameState.currentLevel];
+    const wrongWords = [];
+    
+    // Выбираем 3 случайных неправильных ответа
+    const availableWords = words.filter(w => w.en !== gameState.currentWord.en);
+    for (let i = 0; i < 3 && availableWords.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * availableWords.length);
+        wrongWords.push(availableWords[randomIndex]);
+        availableWords.splice(randomIndex, 1);
+    }
+    
+    // Создаем массив всех вариантов и перемешиваем
+    const allOptions = [...wrongWords, gameState.currentWord];
+    shuffleArray(allOptions);
+    
+    // Находим индекс правильного ответа
+    const correctIndex = allOptions.indexOf(gameState.currentWord);
+    
+    // Создаем HTML для вариантов ответов
+    let optionsHTML = '<div class="answer-options">';
+    allOptions.forEach((word, index) => {
+        optionsHTML += `
+            <div class="answer-option" data-index="${index}" onclick="selectAnswer(this, ${index === correctIndex})">
+                ${word.ru}
+            </div>
+        `;
+    });
+    optionsHTML += '</div>';
+    
+    answerContainer.innerHTML = optionsHTML;
+}
+
+// Вопрос с заполнением пропуска
+function showFillBlankQuestion() {
+    const questionContainer = document.getElementById('question-container');
+    const answerContainer = document.getElementById('answer-container');
+    
+    // Создаем предложение с пропуском
+    const sentence = gameState.currentWord.example;
+    const targetWord = gameState.currentWord.en;
+    const sentenceWithGap = sentence.replace(new RegExp(targetWord, 'gi'), '__________');
+    
+    // Показ вопроса
+    questionContainer.innerHTML = `
+        <div class="question-text">Заполните пропуск в предложении:</div>
+        <div class="question-example">"${sentenceWithGap}"</div>
+        <div class="hint-text">Перевод пропущенного слова: ${gameState.currentWord.ru}</div>
+    `;
+    
+    // Создание поля для ввода ответа
+    answerContainer.innerHTML = `
+        <input type="text" class="input-answer" id="user-answer" 
+               placeholder="Введите пропущенное слово..." autocomplete="off">
+    `;
+    
+    // Фокус на поле ввода
+    document.getElementById('user-answer').focus();
+}
+
+// Диктант
+function showDictationQuestion() {
+    const questionContainer = document.getElementById('question-container');
+    const answerContainer = document.getElementById('answer-container');
+    
+    // Показ вопроса
+    questionContainer.innerHTML = `
+        <div class="question-text">Напишите слово на английском:</div>
+        <div class="question-text"><strong>${gameState.currentWord.ru}</strong></div>
+    `;
+    
+    // Создание поля для ввода ответа
+    answerContainer.innerHTML = `
+        <input type="text" class="input-answer" id="user-answer" 
+               placeholder="Введите слово на английском..." autocomplete="off">
+    `;
+    
+    // Фокус на поле ввода
+    document.getElementById('user-answer').focus();
+}
+
+// Смешанный вопрос
+function showMixedQuestion() {
+    // Случайный выбор типа вопроса
+    const questionTypes = ['translation-ru-en', 'translation-en-ru', 'multiple-choice', 'fill-blank', 'dictation'];
+    const randomType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
+    
+    // Временная установка типа вопроса и отображение
+    const originalMode = gameState.currentMode;
+    gameState.currentMode = randomType;
+    
+    switch (randomType) {
+        case 'translation-ru-en':
+            showTranslationQuestion('ru', 'en');
+            break;
+        case 'translation-en-ru':
+            showTranslationQuestion('en', 'ru');
+            break;
+        case 'multiple-choice':
+            showMultipleChoiceQuestion();
+            break;
+        case 'fill-blank':
+            showFillBlankQuestion();
+            break;
+        case 'dictation':
+            showDictationQuestion();
+            break;
+    }
+    
+    // Возвращаем исходный режим
+    gameState.currentMode = originalMode;
+}
+
+// Выбор ответа (для multiple-choice)
+function selectAnswer(element, isCorrect) {
+    // Убираем выделение у всех вариантов
+    document.querySelectorAll('.answer-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Выделяем выбранный вариант
+    element.classList.add('selected');
+    
+    // Сохраняем выбранный ответ
+    gameState.selectedAnswer = {
+        element: element,
+        isCorrect: isCorrect
+    };
+}
+
+// Проверка ответа
+function checkAnswer() {
+    let isCorrect = false;
+    let userAnswer = '';
+    
+    // Получение ответа пользователя в зависимости от режима
+    switch (gameState.currentMode) {
+        case 'translation-ru-en':
+        case 'translation-en-ru':
+        case 'fill-blank':
+        case 'dictation':
+            const input = document.getElementById('user-answer');
+            if (!input || !input.value.trim()) {
+                showNotification('Введите ответ!', 'warning');
+                return;
+            }
+            userAnswer = input.value.trim().toLowerCase();
+            const correctAnswer = getCorrectAnswer();
+            isCorrect = checkAnswerEquality(userAnswer, correctAnswer);
+            break;
+            
+        case 'multiple-choice':
+            if (!gameState.selectedAnswer) {
+                showNotification('Выберите ответ!', 'warning');
+                return;
+            }
+            isCorrect = gameState.selectedAnswer.isCorrect;
+            break;
+            
+        case 'mixed':
+            // Для смешанного режима проверяем в зависимости от типа вопроса
+            const mixedInput = document.getElementById('user-answer');
+            if (mixedInput) {
+                userAnswer = mixedInput.value.trim().toLowerCase();
+                const mixedCorrectAnswer = getCorrectAnswer();
+                isCorrect = checkAnswerEquality(userAnswer, mixedCorrectAnswer);
+            } else if (gameState.selectedAnswer) {
+                isCorrect = gameState.selectedAnswer.isCorrect;
+            } else {
+                showNotification('Выберите ответ!', 'warning');
+                return;
+            }
+            break;
+    }
+    
+    // Обработка результата
+    processAnswerResult(isCorrect, userAnswer);
+}
+
+// Получение правильного ответа
+function getCorrectAnswer() {
+    switch (gameState.currentMode) {
+        case 'translation-ru-en':
+            return gameState.currentWord.en.toLowerCase();
+        case 'translation-en-ru':
+        case 'multiple-choice':
+            return gameState.currentWord.ru.toLowerCase();
+        case 'fill-blank':
+        case 'dictation':
+            return gameState.currentWord.en.toLowerCase();
+        case 'mixed':
+            // Для смешанного режима определяем на лету
+            return gameState.currentWord.en.toLowerCase();
+    }
+}
+
+// Проверка равенства ответов (с учетом возможных вариантов)
+function checkAnswerEquality(userAnswer, correctAnswer) {
+    // Разделяем возможные варианты перевода (если их несколько через запятую)
+    const correctAnswers = correctAnswer.split(',').map(a => a.trim().toLowerCase());
+    
+    // Проверяем, совпадает ли ответ пользователя с одним из правильных вариантов
+    return correctAnswers.includes(userAnswer);
+}
+
+// Обработка результата ответа
+function processAnswerResult(isCorrect, userAnswer = '') {
+    // Обновление статистики
+    appState.stats.totalAnswers++;
+    if (isCorrect) {
+        appState.stats.correctAnswers++;
+        gameState.correctAnswers++;
+        
+        // Начисление очков
+        let points = 0;
+        switch (gameState.currentMode) {
+            case 'multiple-choice':
+                points = 1;
+                break;
+            case 'translation-ru-en':
+            case 'translation-en-ru':
+            case 'fill-blank':
+                points = 2;
+                break;
+            case 'dictation':
+                points = 3;
+                break;
+            case 'mixed':
+                points = 2; // Среднее значение
+                break;
+        }
+        
+        gameState.score += points;
+        
+        // Добавление слова в изученные
+        appState.stats.wordsLearned.add(gameState.currentWord.en);
+        
+        // Обновление счета
+        document.getElementById('current-score').textContent = gameState.score;
+        
+        // Визуальная обратная связь
+        showFeedback(isCorrect, userAnswer);
+        
+        // Звуковой эффект
+        if (appState.settings.soundEnabled) {
+            playSound('correct');
+        }
+        
+        // Переход к следующему вопросу через 1.5 секунды
+        setTimeout(() => {
+            gameState.selectedAnswer = null;
+            showNextQuestion();
+        }, 1500);
+    } else {
+        // Неправильный ответ
+        showFeedback(isCorrect, userAnswer);
+        
+        // Звуковой эффект
+        if (appState.settings.soundEnabled) {
+            playSound('incorrect');
+        }
+        
+        // Показываем правильный ответ 2 секунды, затем следующий вопрос
+        setTimeout(() => {
+            gameState.selectedAnswer = null;
+            showNextQuestion();
+        }, 2000);
+    }
+    
+    // Сохранение статистики
+    saveGameData();
+}
+
+// Показать обратную связь
+function showFeedback(isCorrect, userAnswer) {
+    const feedbackContainer = document.getElementById('result-feedback');
+    const correctAnswer = getCorrectAnswer();
+    
+    if (isCorrect) {
+        feedbackContainer.className = 'feedback correct';
+        feedbackContainer.innerHTML = `
+            <div class="feedback-content">
+                <h3><i class="fas fa-check-circle"></i> Правильно!</h3>
+                <p>Вы заработали очки!</p>
+                <p><strong>${gameState.currentWord.en}</strong> - <strong>${gameState.currentWord.ru}</strong></p>
+                <p class="question-example">Пример: ${gameState.currentWord.example}</p>
+            </div>
+        `;
+    } else {
+        feedbackContainer.className = 'feedback incorrect';
+        feedbackContainer.innerHTML = `
+            <div class="feedback-content">
+                <h3><i class="fas fa-times-circle"></i> Неправильно</h3>
+                <p>Ваш ответ: <strong>${userAnswer || 'не выбран'}</strong></p>
+                <p>Правильный ответ: <strong>${correctAnswer}</strong></p>
+                <p><strong>${gameState.currentWord.en}</strong> - <strong>${gameState.currentWord.ru}</strong></p>
+                <p class="question-example">Пример: ${gameState.currentWord.example}</p>
+            </div>
+        `;
+    }
+}
+
+// Показать подсказку
+function showHint() {
+    const feedbackContainer = document.getElementById('result-feedback');
+    feedbackContainer.className = 'feedback hint';
+    
+    let hintText = '';
+    switch (gameState.currentMode) {
+        case 'translation-ru-en':
+            hintText = `Первая буква: <strong>${gameState.currentWord.en[0].toUpperCase()}</strong>`;
+            break;
+        case 'translation-en-ru':
+            hintText = `Первая буква перевода: <strong>${gameState.currentWord.ru[0].toUpperCase()}</strong>`;
+            break;
+        case 'fill-blank':
+            hintText = `Длина слова: <strong>${gameState.currentWord.en.length}</strong> букв`;
+            break;
+        case 'dictation':
+            hintText = `Первая буква: <strong>${gameState.currentWord.en[0].toUpperCase()}</strong>, длина: <strong>${gameState.currentWord.en.length}</strong> букв`;
+            break;
+        default:
+            hintText = `Попробуйте еще раз!`;
+    }
+    
+    feedbackContainer.innerHTML = `
+        <div class="feedback-content">
+            <h3><i class="fas fa-lightbulb"></i> Подсказка</h3>
+            <p>${hintText}</p>
+        </div>
+    `;
+    
+    // Штраф за подсказку (минус 1 очко)
+    gameState.score = Math.max(0, gameState.score - 1);
+    document.getElementById('current-score').textContent = gameState.score;
+}
+
+// Пропустить вопрос
+function skipQuestion() {
+    showFeedback(false, 'пропущено');
+    
+    // Переход к следующему вопросу через 1 секунду
+    setTimeout(() => {
+        gameState.selectedAnswer = null;
+        showNextQuestion();
+    }, 1000);
+}
+
+// Завершение игры
+function endGame() {
+    gameState.gameActive = false;
+    
+    // Остановка таймера
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    
+    // Расчет времени игры
+    const endTime = Date.now();
+    const gameTime = Math.floor((endTime - gameState.startTime) / 1000);
+    const minutes = Math.floor(gameTime / 60);
+    const seconds = gameTime % 60;
+    const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Обновление статистики
+    appState.stats.gamesPlayed++;
+    if (gameState.score > appState.stats.bestScore) {
+        appState.stats.bestScore = gameState.score;
+    }
+    
+    // Сохранение статистики
+    saveGameData();
+    
+    // Показ результатов
+    document.getElementById('final-score').textContent = gameState.score;
+    document.getElementById('correct-answers').textContent = 
+        `${gameState.correctAnswers}/${gameState.totalQuestions}`;
+    document.getElementById('game-time').textContent = timeString;
+    
+    // Определение оценки
+    const accuracy = (gameState.correctAnswers / gameState.totalQuestions) * 100;
+    let rating = '';
+    let ratingClass = '';
+    
+    if (accuracy >= 90) {
+        rating = 'Отлично! 🎉';
+        ratingClass = 'excellent';
+    } else if (accuracy >= 70) {
+        rating = 'Хорошо! 👍';
+        ratingClass = 'good';
+    } else if (accuracy >= 50) {
+        rating = 'Неплохо! 😊';
+        ratingClass = 'average';
+    } else {
+        rating = 'Попробуйте еще! 💪';
+        ratingClass = 'poor';
+    }
+    
+    document.getElementById('performance-rating').textContent = rating;
+    document.getElementById('performance-rating').className = `rating ${ratingClass}`;
+    
+    // Показ экрана результатов
+    showSection('results');
+}
+
+// Перезапуск игры
+function restartGame() {
+    startNewGame();
+}
+
+// Таймер
+function startTimer() {
+    gameState.timeLeft = appState.settings.timerSeconds;
+    updateTimerDisplay();
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        updateTimerDisplay();
+        
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            // Автоматическая проверка ответа (или пропуск)
+            if (gameState.currentMode === 'multiple-choice' && gameState.selectedAnswer) {
+                checkAnswer();
+            } else {
+                skipQuestion();
+            }
+        }
+    }, 1000);
+}
+
+function resetTimer() {
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+    }
+    gameState.timeLeft = appState.settings.timerSeconds;
+    updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+    // Можно добавить отображение таймера в UI
+    // Например, добавить элемент с id="timer" и обновлять его
+}
+
+// Утилиты
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function getModeName(mode) {
+    const modeNames = {
+        'translation-ru-en': 'Рус → Англ',
+        'translation-en-ru': 'Англ → Рус',
+        'multiple-choice': 'Выбор ответа',
+        'fill-blank': 'Заполни пропуск',
+        'dictation': 'Диктант',
+        'mixed': 'Смешанный'
+    };
+    return modeNames[mode] || mode;
+}
+
+// Словарь
+function displayDictionary() {
+    const dictionaryList = document.getElementById('dictionary-list');
+    const searchTerm = document.getElementById('word-search').value.toLowerCase();
+    const levelFilter = document.getElementById('dictionary-level-filter').value;
+    
+    let allWords = [];
+    
+    // Собираем все слова с учетом фильтра
+    for (const level in appState.words) {
+        if (levelFilter === 'all' || levelFilter === level) {
+            appState.words[level].forEach(word => {
+                allWords.push({...word, level: level});
+            });
+        }
+    }
+    
+    // Фильтрация по поисковому запросу
+    if (searchTerm) {
+        allWords = allWords.filter(word => 
+            word.en.toLowerCase().includes(searchTerm) || 
+            word.ru.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Сортировка по английскому слову
+    allWords.sort((a, b) => a.en.localeCompare(b.en));
+    
+    // Отображение
+    if (allWords.length === 0) {
+        dictionaryList.innerHTML = `
+            <div class="empty-message">
+                <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 20px;"></i>
+                <p>Слова не найдены. Добавьте новые слова или измените фильтры.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    allWords.forEach(word => {
+        const isLearned = appState.stats.wordsLearned.has(word.en);
+        const learnedClass = isLearned ? 'learned' : '';
+        
+        html += `
+            <div class="word-card ${learnedClass}">
+                <div class="word-header">
+                    <div class="word-en">${word.en}</div>
+                    <span class="word-level ${word.level}">${word.level}</span>
+                </div>
+                <div class="word-ru">${word.ru}</div>
+                <div class="word-example">${word.example}</div>
+                ${isLearned ? '<div class="word-learned"><i class="fas fa-check-circle"></i> Изучено</div>' : ''}
+            </div>
+        `;
+    });
+    
+    dictionaryList.innerHTML = html;
+}
+
+function searchWords() {
+    displayDictionary();
+}
+
+function filterDictionary() {
+    displayDictionary();
+}
+
+// Добавление нового слова
+function addNewWord() {
+    const enWord = document.getElementById('new-en-word').value.trim();
+    const ruWord = document.getElementById('new-ru-word').value.trim();
+    const example = document.getElementById('new-example').value.trim();
+    const level = document.getElementById('new-level').value;
+    
+    // Проверка ввода
+    if (!enWord || !ruWord) {
+        showNotification('Заполните все обязательные поля!', 'error');
+        return;
+    }
+    
+    // Проверка, существует ли уже такое слово на этом уровне
+    if (appState.words[level]) {
+        const existingWord = appState.words[level].find(w => w.en.toLowerCase() === enWord.toLowerCase());
+        if (existingWord) {
+            showNotification('Это слово уже есть в словаре на этом уровне!', 'warning');
+            return;
+        }
+    } else {
+        appState.words[level] = [];
+    }
+    
+    // Добавление нового слова
+    const newWord = {
+        en: enWord,
+        ru: ruWord,
+        example: example || `${enWord} - ${ruWord}`
+    };
+    
+    appState.words[level].push(newWord);
+    saveGameData();
+    
+    // Очистка формы
+    document.getElementById('new-en-word').value = '';
+    document.getElementById('new-ru-word').value = '';
+    document.getElementById('new-example').value = '';
+    
+    // Обновление UI
+    updateWordCounts();
+    updateUIStats();
+    
+    // Уведомление
+    showNotification(`Слово "${enWord}" добавлено в уровень "${level}"!`, 'success');
+    
+    // Возврат в главное меню
+    showMainMenu();
+}
+
+function updateWordCounts() {
+    // Эта функция уже вызывается в других местах, оставляем для совместимости
+    updateUIStats();
+}
+
+// Статистика
+function displayStats() {
+    // Основная статистика
+    document.getElementById('stat-games').textContent = appState.stats.gamesPlayed;
+    document.getElementById('stat-best').textContent = appState.stats.bestScore;
+    document.getElementById('stat-learned').textContent = appState.stats.wordsLearned.size;
+    
+    // Точность
+    const accuracy = appState.stats.totalAnswers > 0 ? 
+        Math.round((appState.stats.correctAnswers / appState.stats.totalAnswers) * 100) : 0;
+    document.getElementById('stat-accuracy').textContent = `${accuracy}%`;
+    
+    // Прогресс по уровням
+    updateLevelProgress();
+}
+
+function updateLevelProgress() {
+    const levels = ['beginner', 'intermediate', 'advanced'];
+    
+    levels.forEach(level => {
+        const totalWords = appState.words[level] ? appState.words[level].length : 0;
+        const learnedWords = totalWords > 0 ? 
+            appState.words[level].filter(w => appState.stats.wordsLearned.has(w.en)).length : 0;
+        const percentage = totalWords > 0 ? Math.round((learnedWords / totalWords) * 100) : 0;
+        
+        document.getElementById(`progress-${level}`).style.width = `${percentage}%`;
+        document.getElementById(`progress-${level}-text`).textContent = `${percentage}%`;
+    });
+}
+
+// Настройки
+function loadSettingsToUI() {
+    document.getElementById('sound-toggle').checked = appState.settings.soundEnabled;
+    document.getElementById('questions-count').value = appState.settings.questionsCount;
+    document.getElementById('timer-setting').value = appState.settings.timerSeconds;
+    document.getElementById('theme-select').value = appState.settings.theme;
+}
+
+function saveSettings() {
+    appState.settings.soundEnabled = document.getElementById('sound-toggle').checked;
+    appState.settings.questionsCount = parseInt(document.getElementById('questions-count').value);
+    appState.settings.timerSeconds = parseInt(document.getElementById('timer-setting').value);
+    appState.settings.theme = document.getElementById('theme-select').value;
+    
+    saveGameData();
+    applySettings();
+    
+    showNotification('Настройки сохранены!', 'success');
+}
+
+function applySettings() {
+    // Применение темы
+    document.body.setAttribute('data-theme', appState.settings.theme);
+    
+    // Можно добавить дополнительные стили для тем
+    if (appState.settings.theme === 'dark') {
+        document.documentElement.style.setProperty('--light-color', '#2c3e50');
+        document.documentElement.style.setProperty('--dark-color', '#ecf0f1');
+    } else {
+        // Сброс к светлой теме
+        document.documentElement.style.setProperty('--light-color', '#f8f9fa');
+        document.documentElement.style.setProperty('--dark-color', '#343a40');
+    }
+}
+
+function resetProgress() {
+    showConfirmModal(
+        'Сбросить прогресс?',
+        'Вы уверены, что хотите сбросить всю статистику и изученные слова? Это действие нельзя отменить.',
+        function() {
+            appState.stats = {
+                gamesPlayed: 0,
+                bestScore: 0,
+                wordsLearned: new Set(),
+                totalAnswers: 0,
+                correctAnswers: 0
+            };
+            
+            saveGameData();
+            displayStats();
+            updateUIStats();
+            
+            showNotification('Прогресс сброшен!', 'success');
+        }
+    );
+}
+
+// Уведомления
+function showNotification(message, type = 'info') {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type} show`;
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+// Модальное окно подтверждения
+let currentConfirmCallback = null;
+
+function showConfirmModal(title, message, callback) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    currentConfirmCallback = callback;
+    
+    document.getElementById('confirm-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('confirm-modal').classList.remove('active');
+    currentConfirmCallback = null;
+}
+
+function confirmAction() {
+    if (currentConfirmCallback) {
+        currentConfirmCallback();
+    }
+    closeModal();
+}
+
+// Звуковые эффекты
+function playSound(type) {
+    if (!appState.settings.soundEnabled) return;
+    
+    // В реальном приложении здесь можно добавить воспроизведение звуковых файлов
+    // Для простоты используем Web Audio API для генерации простых звуков
+    
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        if (type === 'correct') {
+            oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+            oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } else if (type === 'incorrect') {
+            oscillator.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+            oscillator.frequency.setValueAtTime(196, audioContext.currentTime + 0.1); // G3
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+    } catch (e) {
+        console.log('Audio not supported:', e);
+    }
+}
+
+// Инициализация обработчиков событий
+function initEventListeners() {
+    // Обработка нажатия Enter в поле ввода ответа
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && sections.game.classList.contains('active')) {
+            checkAnswer();
+        }
+    });
+    
+    // Обработка клика вне модального окна
+    document.getElementById('confirm-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+}
+
+// Обновление статистики слов
+function updateWordCounts() {
+    // Эта функция уже реализована как updateUIStats()
+    updateUIStats();
+}

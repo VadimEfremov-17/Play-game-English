@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordMaster - Игра для изучения английских слов</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto+Slab:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <h1><i class="fas fa-language"></i> WordMaster</h1>
+            <p class="subtitle">Игра для изучения английских слов</p>
+        </header>
+
+        <!-- Основное содержимое -->
+        <main class="main-content">
+            <!-- Главное меню -->
+            <div id="main-menu" class="section active">
+                <div class="welcome-card">
+                    <h2><i class="fas fa-graduation-cap"></i> Добро пожаловать!</h2>
+                    <p>Улучшайте свой словарный запас английского языка с помощью увлекательных игровых режимов.</p>
+                    <div class="stats-summary">
+                        <div class="stat-item">
+                            <span class="stat-number" id="total-words">0</span>
+                            <span class="stat-label">слов в базе</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="games-played">0</span>
+                            <span class="stat-label">сыграно игр</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="best-score">0</span>
+                            <span class="stat-label">лучший счет</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-options">
+                    <button class="menu-btn" onclick="startGame()">
+                        <i class="fas fa-play-circle"></i> Начать игру
+                    </button>
+                    <button class="menu-btn" onclick="showDictionary()">
+                        <i class="fas fa-book"></i> Словарь
+                    </button>
+                    <button class="menu-btn" onclick="showAddWord()">
+                        <i class="fas fa-plus-circle"></i> Добавить слово
+                    </button>
+                    <button class="menu-btn" onclick="showStats()">
+                        <i class="fas fa-chart-line"></i> Статистика
+                    </button>
+                    <button class="menu-btn" onclick="showSettings()">
+                        <i class="fas fa-cog"></i> Настройки
+                    </button>
+                </div>
+
+                <div class="quote-box">
+                    <p><i class="fas fa-quote-left"></i> Изучение нового языка — это не только изучение новых слов, но и новый взгляд на мир. <i class="fas fa-quote-right"></i></p>
+                </div>
+            </div>
+
+            <!-- Выбор уровня -->
+            <div id="level-select" class="section">
+                <h2><i class="fas fa-layer-group"></i> Выберите уровень сложности</h2>
+                <div class="level-cards">
+                    <div class="level-card" onclick="selectLevel('beginner')">
+                        <div class="level-icon beginner">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <h3>Начинающий</h3>
+                        <p>Базовые слова, простые предложения</p>
+                        <div class="word-count" id="count-beginner">0 слов</div>
+                    </div>
+                    <div class="level-card" onclick="selectLevel('intermediate')">
+                        <div class="level-icon intermediate">
+                            <i class="fas fa-tree"></i>
+                        </div>
+                        <h3>Средний</h3>
+                        <p>Популярные слова, распространенные фразы</p>
+                        <div class="word-count" id="count-intermediate">0 слов</div>
+                    </div>
+                    <div class="level-card" onclick="selectLevel('advanced')">
+                        <div class="level-icon advanced">
+                            <i class="fas fa-mountain"></i>
+                        </div>
+                        <h3>Продвинутый</h3>
+                        <p>Сложные слова, идиомы, специализированная лексика</p>
+                        <div class="word-count" id="count-advanced">0 слов</div>
+                    </div>
+                </div>
+                <button class="back-btn" onclick="showMainMenu()">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+            </div>
+
+            <!-- Выбор режима -->
+            <div id="mode-select" class="section">
+                <h2><i class="fas fa-gamepad"></i> Выберите режим игры</h2>
+                <div class="mode-cards">
+                    <div class="mode-card" onclick="selectMode('translation-ru-en')">
+                        <div class="mode-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h3>Русский → Английский</h3>
+                        <p>Переведите слово с русского на английский</p>
+                        <div class="mode-difficulty easy">Легко</div>
+                    </div>
+                    <div class="mode-card" onclick="selectMode('translation-en-ru')">
+                        <div class="mode-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <h3>Английский → Русский</h3>
+                        <p>Переведите слово с английского на русский</p>
+                        <div class="mode-difficulty easy">Легко</div>
+                    </div>
+                    <div class="mode-card" onclick="selectMode('multiple-choice')">
+                        <div class="mode-icon">
+                            <i class="fas fa-list-ol"></i>
+                        </div>
+                        <h3>Выбор ответа</h3>
+                        <p>Выберите правильный перевод из вариантов</p>
+                        <div class="mode-difficulty medium">Средне</div>
+                    </div>
+                    <div class="mode-card" onclick="selectMode('fill-blank')">
+                        <div class="mode-icon">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <h3>Заполни пропуск</h3>
+                        <p>Вставьте правильное слово в предложение</p>
+                        <div class="mode-difficulty medium">Средне</div>
+                    </div>
+                    <div class="mode-card" onclick="selectMode('dictation')">
+                        <div class="mode-icon">
+                            <i class="fas fa-keyboard"></i>
+                        </div>
+                        <h3>Диктант</h3>
+                        <p>Напишите слово по его переводу</p>
+                        <div class="mode-difficulty hard">Сложно</div>
+                    </div>
+                    <div class="mode-card" onclick="selectMode('mixed')">
+                        <div class="mode-icon">
+                            <i class="fas fa-random"></i>
+                        </div>
+                        <h3>Смешанный</h3>
+                        <p>Все типы заданий в случайном порядке</p>
+                        <div class="mode-difficulty hard">Сложно</div>
+                    </div>
+                </div>
+                <button class="back-btn" onclick="showLevelSelect()">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+            </div>
+
+            <!-- Игровой экран -->
+            <div id="game-screen" class="section">
+                <div class="game-header">
+                    <div class="game-info">
+                        <span class="level-badge" id="current-level-badge">Начинающий</span>
+                        <span class="mode-badge" id="current-mode-badge">Перевод</span>
+                    </div>
+                    <div class="game-stats">
+                        <div class="score">
+                            <i class="fas fa-star"></i>
+                            <span id="current-score">0</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <span id="question-counter">1/10</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-content">
+                    <div id="question-container">
+                        <!-- Здесь будет отображаться вопрос -->
+                    </div>
+
+                    <div id="answer-container">
+                        <!-- Здесь будут варианты ответов или поле ввода -->
+                    </div>
+
+                    <div class="game-controls">
+                        <button id="hint-btn" class="control-btn hint" onclick="showHint()">
+                            <i class="fas fa-lightbulb"></i> Подсказка
+                        </button>
+                        <button id="skip-btn" class="control-btn skip" onclick="skipQuestion()">
+                            <i class="fas fa-forward"></i> Пропустить
+                        </button>
+                        <button id="submit-btn" class="control-btn submit" onclick="checkAnswer()">
+                            <i class="fas fa-check"></i> Проверить
+                        </button>
+                    </div>
+                </div>
+
+                <div id="result-feedback" class="feedback">
+                    <!-- Здесь будет отображаться результат ответа -->
+                </div>
+
+                <button class="back-btn" onclick="endGame()">
+                    <i class="fas fa-stop-circle"></i> Завершить игру
+                </button>
+            </div>
+
+            <!-- Результаты игры -->
+            <div id="results-screen" class="section">
+                <div class="results-card">
+                    <h2><i class="fas fa-trophy"></i> Игра завершена!</h2>
+                    
+                    <div class="results-summary">
+                        <div class="result-stat">
+                            <div class="result-icon score">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="result-details">
+                                <h3>Ваш счет</h3>
+                                <p class="result-value" id="final-score">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="result-stat">
+                            <div class="result-icon correct">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="result-details">
+                                <h3>Правильные ответы</h3>
+                                <p class="result-value" id="correct-answers">0/0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="result-stat">
+                            <div class="result-icon time">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="result-details">
+                                <h3>Время</h3>
+                                <p class="result-value" id="game-time">0:00</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="performance-rating">
+                        <h3>Ваша оценка:</h3>
+                        <div class="rating" id="performance-rating">Отлично!</div>
+                    </div>
+
+                    <div class="results-actions">
+                        <button class="action-btn play-again" onclick="restartGame()">
+                            <i class="fas fa-redo"></i> Играть снова
+                        </button>
+                        <button class="action-btn main-menu" onclick="showMainMenu()">
+                            <i class="fas fa-home"></i> Главное меню
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Словарь -->
+            <div id="dictionary-screen" class="section">
+                <h2><i class="fas fa-book"></i> Ваш словарь</h2>
+                
+                <div class="dictionary-controls">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="word-search" placeholder="Поиск слова..." onkeyup="searchWords()">
+                    </div>
+                    <select id="dictionary-level-filter" onchange="filterDictionary()">
+                        <option value="all">Все уровни</option>
+                        <option value="beginner">Начинающий</option>
+                        <option value="intermediate">Средний</option>
+                        <option value="advanced">Продвинутый</option>
+                    </select>
+                </div>
+
+                <div class="dictionary-list" id="dictionary-list">
+                    <!-- Слова будут загружены здесь -->
+                </div>
+
+                <button class="back-btn" onclick="showMainMenu()">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+            </div>
+
+            <!-- Добавление слова -->
+            <div id="add-word-screen" class="section">
+                <h2><i class="fas fa-plus-circle"></i> Добавить новое слово</h2>
+                
+                <div class="add-word-form">
+                    <div class="form-group">
+                        <label for="new-en-word"><i class="fas fa-font"></i> Слово на английском</label>
+                        <input type="text" id="new-en-word" placeholder="Например: computer">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new-ru-word"><i class="fas fa-font"></i> Перевод на русский</label>
+                        <input type="text" id="new-ru-word" placeholder="Например: компьютер">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new-example"><i class="fas fa-comment-alt"></i> Пример предложения</label>
+                        <textarea id="new-example" placeholder="Например: I use my computer for work and entertainment." rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="new-level"><i class="fas fa-layer-group"></i> Уровень сложности</label>
+                        <select id="new-level">
+                            <option value="beginner">Начинающий</option>
+                            <option value="intermediate">Средний</option>
+                            <option value="advanced">Продвинутый</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="action-btn cancel" onclick="showMainMenu()">
+                            <i class="fas fa-times"></i> Отмена
+                        </button>
+                        <button class="action-btn save" onclick="addNewWord()">
+                            <i class="fas fa-save"></i> Сохранить слово
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика -->
+            <div id="stats-screen" class="section">
+                <h2><i class="fas fa-chart-line"></i> Ваша статистика</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon total">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h3>Сыграно игр</h3>
+                        <p class="stat-number" id="stat-games">0</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon best">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>Лучший счет</h3>
+                        <p class="stat-number" id="stat-best">0</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon words">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h3>Изучено слов</h3>
+                        <p class="stat-number" id="stat-learned">0</p>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon accuracy">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h3>Точность</h3>
+                        <p class="stat-number" id="stat-accuracy">0%</p>
+                    </div>
+                </div>
+
+                <div class="progress-by-level">
+                    <h3>Прогресс по уровням</h3>
+                    <div class="level-progress">
+                        <div class="level-progress-item">
+                            <span>Начинающий</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-beginner" style="width: 0%"></div>
+                            </div>
+                            <span id="progress-beginner-text">0%</span>
+                        </div>
+                        <div class="level-progress-item">
+                            <span>Средний</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-intermediate" style="width: 0%"></div>
+                            </div>
+                            <span id="progress-intermediate-text">0%</span>
+                        </div>
+                        <div class="level-progress-item">
+                            <span>Продвинутый</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-advanced" style="width: 0%"></div>
+                            </div>
+                            <span id="progress-advanced-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="back-btn" onclick="showMainMenu()">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+            </div>
+
+            <!-- Настройки -->
+            <div id="settings-screen" class="section">
+                <h2><i class="fas fa-cog"></i> Настройки</h2>
+                
+                <div class="settings-options">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3><i class="fas fa-volume-up"></i> Звуковые эффекты</h3>
+                            <p>Включить звуки при правильных/неправильных ответах</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="sound-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3><i class="fas fa-question-circle"></i> Количество вопросов</h3>
+                            <p>Сколько вопросов в одной игровой сессии</p>
+                        </div>
+                        <select id="questions-count">
+                            <option value="5">5 вопросов</option>
+                            <option value="10" selected>10 вопросов</option>
+                            <option value="15">15 вопросов</option>
+                            <option value="20">20 вопросов</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3><i class="fas fa-clock"></i> Таймер</h3>
+                            <p>Ограничение времени на ответ (в секундах)</p>
+                        </div>
+                        <select id="timer-setting">
+                            <option value="0">Без таймера</option>
+                            <option value="10">10 секунд</option>
+                            <option value="15" selected>15 секунд</option>
+                            <option value="20">20 секунд</option>
+                            <option value="30">30 секунд</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <h3><i class="fas fa-palette"></i> Тема интерфейса</h3>
+                            <p>Выберите цветовую тему приложения</p>
+                        </div>
+                        <select id="theme-select">
+                            <option value="light" selected>Светлая</option>
+                            <option value="dark">Темная</option>
+                            <option value="blue">Синяя</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="action-btn" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Сохранить настройки
+                    </button>
+                    <button class="action-btn" onclick="resetProgress()">
+                        <i class="fas fa-trash-alt"></i> Сбросить прогресс
+                    </button>
+                </div>
+
+                <button class="back-btn" onclick="showMainMenu()">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </button>
+            </div>
+        </main>
+
+        <!-- Подвал -->
+        <footer class="footer">
+            <p>WordMaster &copy; 2023 - Игра для изучения английских слов</p>
+            <p class="footer-links">
+                <a href="#" onclick="showMainMenu()">Главная</a> | 
+                <a href="#" onclick="showDictionary()">Словарь</a> | 
+                <a href="#" onclick="showStats()">Статистика</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Модальное окно подтверждения -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirm-title">Подтверждение</h3>
+            <p id="confirm-message">Вы уверены?</p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+                <button class="modal-btn confirm" onclick="confirmAction()">Да</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notification" class="notification"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
